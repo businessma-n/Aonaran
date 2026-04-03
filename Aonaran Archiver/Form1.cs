@@ -111,14 +111,16 @@ namespace Aonaran_Archiver
             availablePanel.SuspendLayout();
             for (int i = 0; i < versionManifest.versions.Count; i++)
             {
-                Label currentLabel = new Label();
-                currentLabel.Text = versionManifest.versions[i].id;
-                currentLabel.Tag = versionManifest.versions[i].type;
-                currentLabel.Font = new Font("Microsoft Sans Serif", 9);
-                currentLabel.Height = 19;
-                currentLabel.Dock = DockStyle.Top;
-                currentLabel.BorderStyle = BorderStyle.FixedSingle;
-                currentLabel.AutoSize = false;
+                Label currentLabel = new Label
+                {
+                    Text = versionManifest.versions[i].id,
+                    Tag = versionManifest.versions[i].type,
+                    Font = new Font("Microsoft Sans Serif", 9),
+                    Height = 19,
+                    Dock = DockStyle.Top,
+                    BorderStyle = BorderStyle.FixedSingle,
+                    AutoSize = false
+                };
                 currentLabel.Click += VersionLabel_Click;
                 availablePanel.Controls.Add(currentLabel);
             }
@@ -140,14 +142,16 @@ namespace Aonaran_Archiver
             }
             if (labelNotPresent)
             {
-                Label createdLabel = new Label();
-                createdLabel.Text = label.Text;
-                createdLabel.Tag = label.Tag;
-                createdLabel.Font = new Font("Microsoft Sans Serif", 9);
-                createdLabel.Height = 19;
-                createdLabel.Dock = DockStyle.Top;
-                createdLabel.BorderStyle = BorderStyle.FixedSingle;
-                createdLabel.AutoSize = false;
+                Label createdLabel = new Label
+                {
+                    Text = label.Text,
+                    Tag = label.Tag,
+                    Font = new Font("Microsoft Sans Serif", 9),
+                    Height = 19,
+                    Dock = DockStyle.Top,
+                    BorderStyle = BorderStyle.FixedSingle,
+                    AutoSize = false
+                };
                 createdLabel.Click += SelectedVersionLabel_Click;
                 selectedPanel.Controls.Add(createdLabel);
             }
@@ -213,6 +217,8 @@ namespace Aonaran_Archiver
                 Console.WriteLine("\nException Caught!");
                 Console.WriteLine("Message :{0} ", e.Message);
             }
+
+            WriteOutputFile(Path.Combine("assets", "indexes", versionData.assetIndex.id+".json"), responseBody);
 
             JsonDocument assetsDocument = JsonDocument.Parse(responseBody);
             JsonElement assetsObjects = assetsDocument.RootElement.GetProperty("objects");
