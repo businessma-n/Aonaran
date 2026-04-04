@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Runtime.Remoting.Messaging;
 using System.Security;
 using System.Security.Cryptography;
+using System.Security.Policy;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -168,6 +169,11 @@ namespace Aonaran_Archiver
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
             File.WriteAllBytes(Path.Combine(outputPath, localPath), toWrite);
         }
+        private bool OutputFileExists(string localPath)
+        {
+            string filePath = Path.Combine(outputPath, localPath);
+            return File.Exists(filePath);
+        }
         private bool CompareSHA1(string toHash, string expectedHash)
         {
             SHA1 sha = SHA1.Create();
@@ -223,14 +229,20 @@ namespace Aonaran_Archiver
             JsonDocument assetsDocument = JsonDocument.Parse(responseBody);
             JsonElement assetsObjects = assetsDocument.RootElement.GetProperty("objects");
 
+            Console.WriteLine(assetsObjects.GetPropertyCount());
+            progressBar1.Maximum = assetsObjects.GetPropertyCount();
+
             foreach (JsonProperty jsonProperty in assetsObjects.EnumerateObject())
             {
                 AssetDownload assetDownload = JsonSerializer.Deserialize<AssetDownload>(jsonProperty.Value);
-                Console.WriteLine(assetDownload.hash);
 
                 string assetFsPath = Path.Combine("assets", "objects", assetDownload.hash.Substring(0, 2), assetDownload.hash);
 
-                if (!File.Exists(assetFsPath))
+                if (OutputFileExists(assetFsPath))
+                {
+                    progressBar1.PerformStep();
+                }
+                else
                 {
                     string assetUrl = "https://resources.download.minecraft.net/" + assetDownload.hash.Substring(0, 2) + "/" + assetDownload.hash;
                     byte[] responseBodyBytes = { };
@@ -251,11 +263,52 @@ namespace Aonaran_Archiver
                         if (CompareSHA1(responseBodyBytes, assetDownload.hash))
                         {
                             WriteOutputFile(assetFsPath, responseBodyBytes);
+                            progressBar1.PerformStep();
                         }
                         else
                         {
                             Console.WriteLine("asset {0} did not match hash", assetDownload);
                         }
+                    }
+                }
+            }
+        }
+        private async Task DownloadVersionClient(VersionData versionData, JsonDocument versionDataDocument)
+        {
+            JsonElement versionDownloads = versionDataDocument.RootElement.GetProperty("downloads");
+            progressBar1.Maximum = versionDownloads.GetPropertyCount();
+            foreach (JsonProperty jsonProperty in versionDownloads.EnumerateObject())
+            {
+                ClientDownload clientDownload = JsonSerializer.Deserialize<ClientDownload>(jsonProperty.Value);
+
+                Uri uri = new Uri(clientDownload.url);
+                string downloadPath = Path.Combine("downloads", versionData.id, uri.Segments.Last());
+
+                if (OutputFileExists(downloadPath))
+                {
+                    progressBar1.PerformStep();
+                }
+                else
+                {
+                    Console.WriteLine(downloadPath);
+
+                    byte[] responseBodyBytes = { };
+                    try
+                    {
+                        HttpResponseMessage response = await httpClient.GetAsync(clientDownload.url);
+                        response.EnsureSuccessStatusCode();
+                        responseBodyBytes = await response.Content.ReadAsByteArrayAsync();
+                    }
+                    catch (HttpRequestException e)
+                    {
+                        Console.WriteLine("\nException Caught!");
+                        Console.WriteLine("Message :{0} ", e.Message);
+                    }
+
+                    if (CompareSHA1(responseBodyBytes, clientDownload.sha1))
+                    {
+                        WriteOutputFile(downloadPath, responseBodyBytes);
+                        progressBar1.PerformStep();
                     }
                 }
             }
@@ -294,10 +347,19 @@ namespace Aonaran_Archiver
                 }
 
                 VersionData versionData = JsonSerializer.Deserialize<VersionData>(responseBody);
+                JsonDocument versionDataDocument = JsonDocument.Parse(responseBody);
 
                 File.WriteAllText(Path.Combine(outputPath, "versiondata", versionData.id + ".json"), responseBody);
 
+                currentTaskLabel.Text = $"Downloading {versionData.id} assets";
                 await DownloadVersionAssets(versionData);
+                progressBar1.Value = 0;
+
+                currentTaskLabel.Text = $"Downloading {versionData.id} client";
+                await DownloadVersionClient(versionData, versionDataDocument);
+                progressBar1.Value = 0;
+
+                currentTaskLabel.Text = "Nothing";
             }
         }
 
