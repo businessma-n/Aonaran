@@ -75,6 +75,13 @@ namespace Aonaran_Archiver
             public string hash { get; set; }
             public int size { get; set; }
         }
+        private class LibraryDownload
+        {
+            public string path { get; set; }
+            public string sha1 { get; set; }
+            public int size { get; set; }
+            public string url { get; set; }
+        }
         public Form1()
         {
             InitializeComponent();
@@ -229,7 +236,6 @@ namespace Aonaran_Archiver
             JsonDocument assetsDocument = JsonDocument.Parse(responseBody);
             JsonElement assetsObjects = assetsDocument.RootElement.GetProperty("objects");
 
-            Console.WriteLine(assetsObjects.GetPropertyCount());
             progressBar1.Maximum = assetsObjects.GetPropertyCount();
 
             foreach (JsonProperty jsonProperty in assetsObjects.EnumerateObject())
@@ -290,8 +296,6 @@ namespace Aonaran_Archiver
                 }
                 else
                 {
-                    Console.WriteLine(downloadPath);
-
                     byte[] responseBodyBytes = { };
                     try
                     {
@@ -310,7 +314,90 @@ namespace Aonaran_Archiver
                         WriteOutputFile(downloadPath, responseBodyBytes);
                         progressBar1.PerformStep();
                     }
+                    else
+                    {
+                        Console.WriteLine("{0} {1} hash did not match", versionData.id, uri.Segments.Last());
+                    }
                 }
+            }
+        }
+        private async Task DownloadVersionLibraries(VersionData versionData, JsonDocument versionDataDocument)
+        {
+            JsonElement libraries = versionDataDocument.RootElement.GetProperty("libraries");
+
+            progressBar1.Maximum = libraries.GetArrayLength();
+
+            foreach (JsonElement library in libraries.EnumerateArray())
+            {
+                JsonElement downloads = library.GetProperty("downloads");
+                JsonElement artifact;
+                if (downloads.TryGetProperty("artifact", out artifact))
+                {
+                    LibraryDownload libraryDownload = artifact.Deserialize<LibraryDownload>();
+
+                    string downloadPath = Path.Combine("libraries", libraryDownload.path.Replace("/", "\\"));
+
+                    if (!OutputFileExists(downloadPath))
+                    {
+                        byte[] responseBodyBytes = { };
+                        try
+                        {
+                            HttpResponseMessage response = await httpClient.GetAsync(libraryDownload.url);
+                            response.EnsureSuccessStatusCode();
+                            responseBodyBytes = await response.Content.ReadAsByteArrayAsync();
+                        }
+                        catch (HttpRequestException e)
+                        {
+                            Console.WriteLine("\nException Caught!");
+                            Console.WriteLine("Message :{0} ", e.Message);
+                        }
+
+                        if (CompareSHA1(responseBodyBytes, libraryDownload.sha1))
+                        {
+                            WriteOutputFile(downloadPath, responseBodyBytes);
+                        }
+                        else
+                        {
+                            Console.WriteLine("{0} hash did not match", downloadPath);
+                        }
+                    }
+                }
+
+                JsonElement classifiers;
+                if (downloads.TryGetProperty("classifiers", out classifiers))
+                {
+                    foreach (JsonProperty jsonProperty in classifiers.EnumerateObject())
+                    {
+                        LibraryDownload libraryDownload = jsonProperty.Value.Deserialize<LibraryDownload>();
+                        string downloadPath = Path.Combine("libraries", libraryDownload.path.Replace("/", "\\"));
+
+                        if (!OutputFileExists(downloadPath))
+                        {
+                            byte[] responseBodyBytes = { };
+                            try
+                            {
+                                HttpResponseMessage response = await httpClient.GetAsync(libraryDownload.url);
+                                response.EnsureSuccessStatusCode();
+                                responseBodyBytes = await response.Content.ReadAsByteArrayAsync();
+                            }
+                            catch (HttpRequestException e)
+                            {
+                                Console.WriteLine("\nException Caught!");
+                                Console.WriteLine("Message :{0} ", e.Message);
+                            }
+
+                            if (CompareSHA1(responseBodyBytes, libraryDownload.sha1))
+                            {
+                                WriteOutputFile(downloadPath, responseBodyBytes);
+                            }
+                            else
+                            {
+                                Console.WriteLine("{0} hash did not match", downloadPath);
+                            }
+                        }
+                    }
+                }
+                progressBar1.PerformStep();
             }
         }
         private async void CreateArchive(List<string> versionIds)
@@ -357,6 +444,10 @@ namespace Aonaran_Archiver
 
                 currentTaskLabel.Text = $"Downloading {versionData.id} client";
                 await DownloadVersionClient(versionData, versionDataDocument);
+                progressBar1.Value = 0;
+
+                currentTaskLabel.Text = $"Downloading {versionData.id} libraries";
+                await DownloadVersionLibraries(versionData, versionDataDocument);
                 progressBar1.Value = 0;
 
                 currentTaskLabel.Text = "Nothing";
