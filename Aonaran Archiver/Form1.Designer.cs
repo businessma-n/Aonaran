@@ -57,6 +57,7 @@
             this.panel4 = new System.Windows.Forms.Panel();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.javaComboBox = new System.Windows.Forms.ComboBox();
+            this.overwriteBox = new System.Windows.Forms.CheckBox();
             this.tableLayoutPanel1.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
             this.groupBox1.SuspendLayout();
@@ -319,6 +320,7 @@
             // 
             // Output
             // 
+            this.Output.Controls.Add(this.overwriteBox);
             this.Output.Controls.Add(this.compressBox);
             this.Output.Dock = System.Windows.Forms.DockStyle.Fill;
             this.Output.Location = new System.Drawing.Point(3, 354);
@@ -335,9 +337,10 @@
             this.compressBox.Checked = true;
             this.compressBox.CheckState = System.Windows.Forms.CheckState.Checked;
             this.compressBox.Dock = System.Windows.Forms.DockStyle.Top;
+            this.compressBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.compressBox.Location = new System.Drawing.Point(3, 16);
             this.compressBox.Name = "compressBox";
-            this.compressBox.Size = new System.Drawing.Size(181, 17);
+            this.compressBox.Size = new System.Drawing.Size(181, 19);
             this.compressBox.TabIndex = 0;
             this.compressBox.Text = "Compress";
             this.compressBox.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -437,6 +440,21 @@
             this.javaComboBox.Name = "javaComboBox";
             this.javaComboBox.Size = new System.Drawing.Size(369, 21);
             this.javaComboBox.TabIndex = 0;
+            this.javaComboBox.Text = "None";
+            // 
+            // overwriteBox
+            // 
+            this.overwriteBox.AutoSize = true;
+            this.overwriteBox.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.overwriteBox.Dock = System.Windows.Forms.DockStyle.Top;
+            this.overwriteBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.overwriteBox.Location = new System.Drawing.Point(3, 35);
+            this.overwriteBox.Name = "overwriteBox";
+            this.overwriteBox.Size = new System.Drawing.Size(181, 19);
+            this.overwriteBox.TabIndex = 1;
+            this.overwriteBox.Text = "Overwrite";
+            this.overwriteBox.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.overwriteBox.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
@@ -494,6 +512,7 @@
         private System.Windows.Forms.GroupBox Output;
         private System.Windows.Forms.Button createArchiveButton;
         private System.Windows.Forms.CheckBox compressBox;
+        private System.Windows.Forms.CheckBox overwriteBox;
     }
 }
 

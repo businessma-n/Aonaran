@@ -62,12 +62,28 @@ namespace Aonaran_Archiver
             public ClientDownload server  { get; set; }
             public ClientDownload server_mappings { get; set; }
         }
+        private class LoggingConfigFile
+        {
+            public string id { get; set; }
+            public string sha1 { get; set; }
+            public int size { get; set; }
+            public string url { get; set; }
+        }
+        private class ClientLoggingConfig
+        {
+            public LoggingConfigFile file { get; set; }
+        }
+        private class LoggingConfig
+        {
+            public ClientLoggingConfig client { get; set; }
+        }
         private class VersionData
         {
             public AssetIndex assetIndex { get; set; }
             public string assets { get; set; }
             public int complianceLevel { get; set; }
             public string id { get; set; }
+            public LoggingConfig logging { get; set; }
 
         }
         private class AssetDownload
@@ -400,8 +416,45 @@ namespace Aonaran_Archiver
                 progressBar1.PerformStep();
             }
         }
+        private async Task DownloadVersionLoggingConfig(VersionData versionData)
+        {
+            if (versionData.logging != null)
+            {
+                LoggingConfigFile loggingFile = versionData.logging.client.file;
+                string downloadPath = Path.Combine("logging", loggingFile.id);
+
+                if (!OutputFileExists(downloadPath))
+                {
+                    byte[] responseBodyBytes = { };
+                    try
+                    {
+                        HttpResponseMessage response = await httpClient.GetAsync(loggingFile.url);
+                        response.EnsureSuccessStatusCode();
+                        responseBodyBytes = await response.Content.ReadAsByteArrayAsync();
+                    }
+                    catch (HttpRequestException e)
+                    {
+                        Console.WriteLine("\nException Caught!");
+                        Console.WriteLine("Message :{0} ", e.Message);
+                    }
+
+                    if (CompareSHA1(responseBodyBytes, loggingFile.sha1))
+                    {
+                        WriteOutputFile(downloadPath, responseBodyBytes);
+                    }
+                    else
+                    {
+                        Console.WriteLine("{0} hash did not match", loggingFile.id);
+                    }
+                }
+            }
+        }
         private async void CreateArchive(List<string> versionIds)
         {
+            if (overwriteBox.Checked && Directory.Exists(outputPath))
+            {
+                Directory.Delete(outputPath, true);
+            }
             Directory.CreateDirectory(Path.Combine(outputPath, "versiondata"));
 
             Console.WriteLine("creating archive with {0}", String.Join(", ",versionIds));
@@ -448,6 +501,10 @@ namespace Aonaran_Archiver
 
                 currentTaskLabel.Text = $"Downloading {versionData.id} libraries";
                 await DownloadVersionLibraries(versionData, versionDataDocument);
+                progressBar1.Value = 0;
+
+                currentTaskLabel.Text = $"Downloading {versionData.id} logging configuration";
+                await DownloadVersionLoggingConfig(versionData);
                 progressBar1.Value = 0;
 
                 currentTaskLabel.Text = "Nothing";
