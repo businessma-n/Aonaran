@@ -201,12 +201,12 @@ namespace Aonaran_Archiver
 
                                 RuntimeDownload currentFileRuntimeDownload = JsonSerializer.Deserialize<RuntimeDownload>(currentFile.Value.GetProperty("downloads").GetProperty("raw"));
 
-                                responseBody = string.Empty;
+                                byte[] responseBodyBytes = { };
                                 try
                                 {
                                     HttpResponseMessage response = await httpClient.GetAsync(currentFileRuntimeDownload.url);
                                     response.EnsureSuccessStatusCode();
-                                    responseBody = await response.Content.ReadAsStringAsync();
+                                    responseBodyBytes = await response.Content.ReadAsByteArrayAsync();
                                 }
                                 catch (HttpRequestException e)
                                 {
@@ -218,7 +218,7 @@ namespace Aonaran_Archiver
 
                                 Directory.CreateDirectory(Path.GetDirectoryName(currentFilePath));
 
-                                File.WriteAllText(currentFilePath, responseBody);
+                                File.WriteAllBytes(currentFilePath, responseBodyBytes);
 
                                 Console.WriteLine("file - {0}", currentFilePath);
                             }
