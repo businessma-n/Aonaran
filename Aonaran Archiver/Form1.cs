@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Deployment.Application;
 using System.Drawing;
 using System.Drawing.Text;
 using System.IO;
@@ -77,12 +78,18 @@ namespace Aonaran_Archiver
         {
             public ClientLoggingConfig client { get; set; }
         }
+        private class JavaVersion
+        {
+            public string component { get; set; }
+            public int majorVersion { get; set; }
+        }
         private class VersionData
         {
             public AssetIndex assetIndex { get; set; }
             public string assets { get; set; }
             public int complianceLevel { get; set; }
             public string id { get; set; }
+            public JavaVersion javaVersion { get; set; }
             public LoggingConfig logging { get; set; }
 
         }
@@ -97,6 +104,128 @@ namespace Aonaran_Archiver
             public string sha1 { get; set; }
             public int size { get; set; }
             public string url { get; set; }
+        }
+        private class JavaRuntimeManager
+        {
+            private bool useMojang { get; set; }
+            private bool useAdoptium { get; set; }
+            private JsonDocument mojangRuntimeManifest { get; set; }
+            private string javaOutputPath { get; set; }
+            private class RuntimeDownload
+            {
+                public string sha1 { get; set; }
+                public int size { get; set; }
+                public string url { get; set; }
+            }
+            private class RuntimeFileDownload
+            {
+                public bool executable { get; set; }
+                public string type { get; set; }
+            }
+            public JavaRuntimeManager(string javaSource, string runtimeOutputPath)
+            {
+                useMojang = javaSource.Contains("Mojang");
+                useAdoptium = javaSource.Contains("Adoptium");
+                javaOutputPath = runtimeOutputPath;
+            }
+            public async Task getRuntimeManifest(HttpClient httpClient)
+            {
+                string responseBody = string.Empty;
+                try
+                {
+                    HttpResponseMessage response = await httpClient.GetAsync("https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json");
+                    response.EnsureSuccessStatusCode();
+                    responseBody = await response.Content.ReadAsStringAsync();
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine("\nException Caught!");
+                    Console.WriteLine("Message :{0} ", e.Message);
+                }
+                mojangRuntimeManifest = JsonDocument.Parse(responseBody);
+            }
+            public async Task DownloadVersionRuntime(JavaVersion javaVersion, HttpClient httpClient)
+            {
+                if (useMojang)
+                {
+                    foreach (JsonProperty javaPlatformProperty in mojangRuntimeManifest.RootElement.EnumerateObject())
+                    {
+                        if (javaPlatformProperty.Name == "gamecore")
+                        {
+                            continue;
+                        }
+
+                        string runtimePath = Path.Combine(javaOutputPath, javaVersion.component, javaPlatformProperty.Name);
+
+                        Console.WriteLine(runtimePath);
+                        if (Directory.Exists(runtimePath))
+                        {
+                            continue;
+                        }
+
+                        JsonElement runtimeDownloads = javaPlatformProperty.Value.GetProperty(javaVersion.component);
+
+                        foreach (JsonElement runtimeDownloadCandidate in runtimeDownloads.EnumerateArray())
+                        {
+                            int progress = runtimeDownloadCandidate.GetProperty("availability").GetProperty("progress").GetInt32();
+                            if (progress != 100)
+                            {
+                                continue;
+                            }
+
+                            RuntimeDownload manifestDownload = runtimeDownloadCandidate.GetProperty("manifest").Deserialize<RuntimeDownload>();
+
+                            string responseBody = string.Empty;
+                            try
+                            {
+                                HttpResponseMessage response = await httpClient.GetAsync(manifestDownload.url);
+                                response.EnsureSuccessStatusCode();
+                                responseBody = await response.Content.ReadAsStringAsync();
+                            }
+                            catch (HttpRequestException e)
+                            {
+                                Console.WriteLine("\nException Caught!");
+                                Console.WriteLine("Message :{0} ", e.Message);
+                            }
+
+                            JsonElement downloadFiles = JsonDocument.Parse(responseBody).RootElement.GetProperty("files");
+
+                            foreach (JsonProperty currentFile in downloadFiles.EnumerateObject())
+                            {
+                                RuntimeFileDownload currentRuntimeFileDownload = JsonSerializer.Deserialize<RuntimeFileDownload>(currentFile.Value);
+
+                                if (currentRuntimeFileDownload.type != "file")
+                                {
+                                    continue;
+                                }
+
+                                RuntimeDownload currentFileRuntimeDownload = JsonSerializer.Deserialize<RuntimeDownload>(currentFile.Value.GetProperty("downloads").GetProperty("raw"));
+
+                                responseBody = string.Empty;
+                                try
+                                {
+                                    HttpResponseMessage response = await httpClient.GetAsync(currentFileRuntimeDownload.url);
+                                    response.EnsureSuccessStatusCode();
+                                    responseBody = await response.Content.ReadAsStringAsync();
+                                }
+                                catch (HttpRequestException e)
+                                {
+                                    Console.WriteLine("\nException Caught!");
+                                    Console.WriteLine("Message :{0} ", e.Message);
+                                }
+
+                                string currentFilePath = Path.Combine(runtimePath, currentFile.Name);
+
+                                Directory.CreateDirectory(Path.GetDirectoryName(currentFilePath));
+
+                                File.WriteAllText(currentFilePath, responseBody);
+
+                                Console.WriteLine("file - {0}", currentFilePath);
+                            }
+                        }
+                    }
+                }
+            }
         }
         public Form1()
         {
@@ -457,6 +586,9 @@ namespace Aonaran_Archiver
             }
             Directory.CreateDirectory(Path.Combine(outputPath, "versiondata"));
 
+            JavaRuntimeManager runtimeManager = new JavaRuntimeManager(javaComboBox.Text, Path.Combine(outputPath, "java"));
+            await runtimeManager.getRuntimeManifest(httpClient);
+
             Console.WriteLine("creating archive with {0}", String.Join(", ",versionIds));
             foreach (string versionId in versionIds)
             {
@@ -505,6 +637,10 @@ namespace Aonaran_Archiver
 
                 currentTaskLabel.Text = $"Downloading {versionData.id} logging configuration";
                 await DownloadVersionLoggingConfig(versionData);
+                progressBar1.Value = 0;
+
+                currentTaskLabel.Text = $"Downloading {versionData.id} Java runtimes";
+                await runtimeManager.DownloadVersionRuntime(versionData.javaVersion, httpClient);
                 progressBar1.Value = 0;
 
                 currentTaskLabel.Text = "Nothing";
