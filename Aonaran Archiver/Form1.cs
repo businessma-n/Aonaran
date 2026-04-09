@@ -144,6 +144,38 @@ namespace Aonaran_Archiver
                 }
                 mojangRuntimeManifest = JsonDocument.Parse(responseBody);
             }
+            private async Task DownloadRuntimeFiles(JsonProperty currentFile, HttpClient httpClient, string runtimePath)
+            {
+                RuntimeFileDownload currentRuntimeFileDownload = JsonSerializer.Deserialize<RuntimeFileDownload>(currentFile.Value);
+
+                if (currentRuntimeFileDownload.type != "file")
+                {
+                    return;
+                }
+
+                RuntimeDownload currentFileRuntimeDownload = JsonSerializer.Deserialize<RuntimeDownload>(currentFile.Value.GetProperty("downloads").GetProperty("raw"));
+
+                byte[] responseBodyBytes = { };
+                try
+                {
+                    HttpResponseMessage response = await httpClient.GetAsync(currentFileRuntimeDownload.url);
+                    response.EnsureSuccessStatusCode();
+                    responseBodyBytes = await response.Content.ReadAsByteArrayAsync();
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine("\nException Caught!");
+                    Console.WriteLine("Message :{0} ", e.Message);
+                }
+
+                string currentFilePath = Path.Combine(runtimePath, currentFile.Name);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(currentFilePath));
+
+                File.WriteAllBytes(currentFilePath, responseBodyBytes);
+
+                Console.WriteLine("file - {0}", currentFilePath);
+            }
             public async Task DownloadVersionRuntime(JavaVersion javaVersion, HttpClient httpClient)
             {
                 if (useMojang)
@@ -190,38 +222,14 @@ namespace Aonaran_Archiver
 
                             JsonElement downloadFiles = JsonDocument.Parse(responseBody).RootElement.GetProperty("files");
 
+                            List<Task> downloadTasks = new List<Task>();
+
                             foreach (JsonProperty currentFile in downloadFiles.EnumerateObject())
                             {
-                                RuntimeFileDownload currentRuntimeFileDownload = JsonSerializer.Deserialize<RuntimeFileDownload>(currentFile.Value);
-
-                                if (currentRuntimeFileDownload.type != "file")
-                                {
-                                    continue;
-                                }
-
-                                RuntimeDownload currentFileRuntimeDownload = JsonSerializer.Deserialize<RuntimeDownload>(currentFile.Value.GetProperty("downloads").GetProperty("raw"));
-
-                                byte[] responseBodyBytes = { };
-                                try
-                                {
-                                    HttpResponseMessage response = await httpClient.GetAsync(currentFileRuntimeDownload.url);
-                                    response.EnsureSuccessStatusCode();
-                                    responseBodyBytes = await response.Content.ReadAsByteArrayAsync();
-                                }
-                                catch (HttpRequestException e)
-                                {
-                                    Console.WriteLine("\nException Caught!");
-                                    Console.WriteLine("Message :{0} ", e.Message);
-                                }
-
-                                string currentFilePath = Path.Combine(runtimePath, currentFile.Name);
-
-                                Directory.CreateDirectory(Path.GetDirectoryName(currentFilePath));
-
-                                File.WriteAllBytes(currentFilePath, responseBodyBytes);
-
-                                Console.WriteLine("file - {0}", currentFilePath);
+                                downloadTasks.Add(DownloadRuntimeFiles(currentFile, httpClient, runtimePath));
                             }
+
+                            await Task.WhenAll(downloadTasks);
                         }
                     }
                 }
@@ -361,6 +369,46 @@ namespace Aonaran_Archiver
             }
             return false;
         }
+        private async Task DownloadAsset(JsonProperty assetProperty)
+        {
+            AssetDownload assetDownload = JsonSerializer.Deserialize<AssetDownload>(assetProperty.Value);
+
+            string assetFsPath = Path.Combine("assets", "objects", assetDownload.hash.Substring(0, 2), assetDownload.hash);
+
+            if (OutputFileExists(assetFsPath))
+            {
+                progressBar1.PerformStep();
+            }
+            else
+            {
+                string assetUrl = "https://resources.download.minecraft.net/" + assetDownload.hash.Substring(0, 2) + "/" + assetDownload.hash;
+                byte[] responseBodyBytes = { };
+                try
+                {
+                    HttpResponseMessage response = await httpClient.GetAsync(assetUrl);
+                    response.EnsureSuccessStatusCode();
+                    responseBodyBytes = await response.Content.ReadAsByteArrayAsync();
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine("\nException Caught!");
+                    Console.WriteLine("Message :{0} ", e.Message);
+                }
+
+                if (responseBodyBytes != null)
+                {
+                    if (CompareSHA1(responseBodyBytes, assetDownload.hash))
+                    {
+                        WriteOutputFile(assetFsPath, responseBodyBytes);
+                        progressBar1.PerformStep();
+                    }
+                    else
+                    {
+                        Console.WriteLine("asset {0} did not match hash", assetDownload);
+                    }
+                }
+            }
+        }
         private async Task DownloadVersionAssets(VersionData versionData)
         {
             string responseBody = String.Empty;
@@ -383,46 +431,14 @@ namespace Aonaran_Archiver
 
             progressBar1.Maximum = assetsObjects.GetPropertyCount();
 
+            List<Task> assetDownloads = new List<Task>();
+
             foreach (JsonProperty jsonProperty in assetsObjects.EnumerateObject())
             {
-                AssetDownload assetDownload = JsonSerializer.Deserialize<AssetDownload>(jsonProperty.Value);
-
-                string assetFsPath = Path.Combine("assets", "objects", assetDownload.hash.Substring(0, 2), assetDownload.hash);
-
-                if (OutputFileExists(assetFsPath))
-                {
-                    progressBar1.PerformStep();
-                }
-                else
-                {
-                    string assetUrl = "https://resources.download.minecraft.net/" + assetDownload.hash.Substring(0, 2) + "/" + assetDownload.hash;
-                    byte[] responseBodyBytes = { };
-                    try
-                    {
-                        HttpResponseMessage response = await httpClient.GetAsync(assetUrl);
-                        response.EnsureSuccessStatusCode();
-                        responseBodyBytes = await response.Content.ReadAsByteArrayAsync();
-                    }
-                    catch (HttpRequestException e)
-                    {
-                        Console.WriteLine("\nException Caught!");
-                        Console.WriteLine("Message :{0} ", e.Message);
-                    }
-
-                    if (responseBodyBytes != null)
-                    {
-                        if (CompareSHA1(responseBodyBytes, assetDownload.hash))
-                        {
-                            WriteOutputFile(assetFsPath, responseBodyBytes);
-                            progressBar1.PerformStep();
-                        }
-                        else
-                        {
-                            Console.WriteLine("asset {0} did not match hash", assetDownload);
-                        }
-                    }
-                }
+                assetDownloads.Add(DownloadAsset(jsonProperty));
+                await Task.Delay(1);
             }
+            await Task.WhenAll(assetDownloads);
         }
         private async Task DownloadVersionClient(VersionData versionData, JsonDocument versionDataDocument)
         {
@@ -433,7 +449,7 @@ namespace Aonaran_Archiver
                 ClientDownload clientDownload = JsonSerializer.Deserialize<ClientDownload>(jsonProperty.Value);
 
                 Uri uri = new Uri(clientDownload.url);
-                string downloadPath = Path.Combine("downloads", versionData.id, uri.Segments.Last());
+                string downloadPath = Path.Combine("client", versionData.id, uri.Segments.Last());
 
                 if (OutputFileExists(downloadPath))
                 {
