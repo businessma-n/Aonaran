@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Deployment.Application;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Text;
 using System.IO;
@@ -436,7 +437,7 @@ namespace Aonaran_Archiver
             foreach (JsonProperty jsonProperty in assetsObjects.EnumerateObject())
             {
                 assetDownloads.Add(DownloadAsset(jsonProperty));
-                await Task.Delay(1);
+                await Task.Delay(TimeSpan.FromMilliseconds(0.1));
             }
             await Task.WhenAll(assetDownloads);
         }
@@ -877,6 +878,11 @@ namespace Aonaran_Archiver
                 versions.Add(currentLabel.Text);
             }
             CreateArchive(versions);
+        }
+
+        private void openOutput_Click(object sender, EventArgs e)
+        {
+            Process.Start("explorer.exe", outputPath);
         }
     }
 }

@@ -58,6 +58,7 @@
             this.panel4 = new System.Windows.Forms.Panel();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.javaComboBox = new System.Windows.Forms.ComboBox();
+            this.openOutput = new System.Windows.Forms.Button();
             this.tableLayoutPanel1.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
             this.groupBox1.SuspendLayout();
@@ -320,6 +321,7 @@
             // 
             // Output
             // 
+            this.Output.Controls.Add(this.openOutput);
             this.Output.Controls.Add(this.overwriteBox);
             this.Output.Controls.Add(this.compressBox);
             this.Output.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -456,6 +458,17 @@
             this.javaComboBox.TabIndex = 0;
             this.javaComboBox.Text = "None";
             // 
+            // openOutput
+            // 
+            this.openOutput.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.openOutput.Location = new System.Drawing.Point(3, 86);
+            this.openOutput.Name = "openOutput";
+            this.openOutput.Size = new System.Drawing.Size(181, 23);
+            this.openOutput.TabIndex = 2;
+            this.openOutput.Text = "Open Output";
+            this.openOutput.UseVisualStyleBackColor = true;
+            this.openOutput.Click += new System.EventHandler(this.openOutput_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -513,6 +526,7 @@
         private System.Windows.Forms.Button createArchiveButton;
         private System.Windows.Forms.CheckBox compressBox;
         private System.Windows.Forms.CheckBox overwriteBox;
+        private System.Windows.Forms.Button openOutput;
     }
 }
 
