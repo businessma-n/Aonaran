@@ -4,5 +4,23 @@ An offline Minecraft launcher that can be burned to a DVD
 
 ## Why
 
-- I don't like Minecraft losing compatibility with things
 - I want to make Minecraft last forever
+- I need something to put on DVDs
+
+## TODO
+
+### Windows
+
+- Archiver
+  - [x] Assets, libraries, and clients
+  - [x] Mojang runtimes
+  - [ ] Adoptium runtimes
+  - [ ] Compression
+- Launcher
+  - [ ] Create instances
+  - [ ] Start instances
+  - [ ] Authentication
+
+ ### Mac/Linux
+
+Ehhh later
