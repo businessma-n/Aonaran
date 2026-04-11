@@ -21,7 +21,7 @@ jobs:
       uses: NuGet/setup-nuget@v1
 
     - name: Restore NuGet Packages
-      run: nuget restore your-solution-name.sln
+      run: nuget restore your-solution-name.slnx
 
     - name: Build Solution
-      run: msbuild your-solution-name.sln /p:Configuration=Release
+      run: msbuild your-solution-name.slnx /p:Configuration=Release
