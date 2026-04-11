@@ -16,6 +16,7 @@ using System.Security.Cryptography;
 using System.Security.Policy;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -243,6 +244,7 @@ namespace Aonaran_Archiver
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            Directory.CreateDirectory("output");
             CreateAvailableVersionLabels();
         }
 
@@ -600,6 +602,8 @@ namespace Aonaran_Archiver
             {
                 Directory.Delete(Path.Combine(outputPath), true);
             }
+
+            File.Delete(Path.Combine(outputPath, "aoarchive.zip"));
             Directory.CreateDirectory(Path.Combine(outputPath, "aoarchive", "versiondata"));
 
             JavaRuntimeManager runtimeManager = new JavaRuntimeManager(javaComboBox.Text, Path.Combine(outputPath, "aoarchive", "java"));
@@ -664,7 +668,7 @@ namespace Aonaran_Archiver
                 if (compressBox.Checked == true)
                 {
                     currentTaskLabel.Text = "Compressing";
-                    ZipFile.CreateFromDirectory(Path.Combine(outputPath, "aoarchive"), Path.Combine(outputPath, "aoarchive.zip"), CompressionLevel.Optimal, false);
+                    await Task.Run(() => ZipFile.CreateFromDirectory(Path.Combine(outputPath, "aoarchive"), Path.Combine(outputPath, "aoarchive.zip"), CompressionLevel.Optimal, false));
                 }
 
                 progressBar1.Style = ProgressBarStyle.Continuous;
@@ -890,7 +894,8 @@ namespace Aonaran_Archiver
 
         private void openOutput_Click(object sender, EventArgs e)
         {
-            Process.Start("explorer.exe", outputPath);
+            Console.WriteLine(Path.GetFullPath("output"));
+            Process.Start("explorer.exe", Path.GetFullPath("output"));
         }
     }
 }
