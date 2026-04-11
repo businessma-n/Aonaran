@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Text;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.Remoting.Messaging;
@@ -174,8 +175,6 @@ namespace Aonaran_Archiver
                 Directory.CreateDirectory(Path.GetDirectoryName(currentFilePath));
 
                 File.WriteAllBytes(currentFilePath, responseBodyBytes);
-
-                Console.WriteLine("file - {0}", currentFilePath);
             }
             public async Task DownloadVersionRuntime(JavaVersion javaVersion, HttpClient httpClient)
             {
@@ -320,19 +319,19 @@ namespace Aonaran_Archiver
         }
         private void WriteOutputFile(string localPath, string toWrite)
         {
-            string filePath = Path.Combine(outputPath, localPath);
+            string filePath = Path.Combine(outputPath, "aoarchive", localPath);
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
             File.WriteAllText(filePath, toWrite);
         }
         private void WriteOutputFile(string localPath, byte[] toWrite)
         {
-            string filePath = Path.Combine(outputPath, localPath);
+            string filePath = Path.Combine(outputPath, "aoarchive", localPath);
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-            File.WriteAllBytes(Path.Combine(outputPath, localPath), toWrite);
+            File.WriteAllBytes(filePath, toWrite);
         }
         private bool OutputFileExists(string localPath)
         {
-            string filePath = Path.Combine(outputPath, localPath);
+            string filePath = Path.Combine(outputPath,"aoarchive", localPath);
             return File.Exists(filePath);
         }
         private bool CompareSHA1(string toHash, string expectedHash)
@@ -599,11 +598,11 @@ namespace Aonaran_Archiver
         {
             if (overwriteBox.Checked && Directory.Exists(outputPath))
             {
-                Directory.Delete(outputPath, true);
+                Directory.Delete(Path.Combine(outputPath), true);
             }
-            Directory.CreateDirectory(Path.Combine(outputPath, "versiondata"));
+            Directory.CreateDirectory(Path.Combine(outputPath, "aoarchive", "versiondata"));
 
-            JavaRuntimeManager runtimeManager = new JavaRuntimeManager(javaComboBox.Text, Path.Combine(outputPath, "java"));
+            JavaRuntimeManager runtimeManager = new JavaRuntimeManager(javaComboBox.Text, Path.Combine(outputPath, "aoarchive", "java"));
             await runtimeManager.getRuntimeManifest(httpClient);
 
             Console.WriteLine("creating archive with {0}", String.Join(", ",versionIds));
@@ -638,9 +637,10 @@ namespace Aonaran_Archiver
                 VersionData versionData = JsonSerializer.Deserialize<VersionData>(responseBody);
                 JsonDocument versionDataDocument = JsonDocument.Parse(responseBody);
 
-                File.WriteAllText(Path.Combine(outputPath, "versiondata", versionData.id + ".json"), responseBody);
+                File.WriteAllText(Path.Combine(outputPath, "aoarchive", "versiondata", versionData.id + ".json"), responseBody);
 
                 currentTaskLabel.Text = $"Downloading {versionData.id} assets";
+                progressBar1.Style = ProgressBarStyle.Continuous;
                 await DownloadVersionAssets(versionData);
                 progressBar1.Value = 0;
 
@@ -657,9 +657,17 @@ namespace Aonaran_Archiver
                 progressBar1.Value = 0;
 
                 currentTaskLabel.Text = $"Downloading {versionData.id} Java runtimes";
+                progressBar1.Style = ProgressBarStyle.Marquee;
                 await runtimeManager.DownloadVersionRuntime(versionData.javaVersion, httpClient);
                 progressBar1.Value = 0;
 
+                if (compressBox.Checked == true)
+                {
+                    currentTaskLabel.Text = "Compressing";
+                    ZipFile.CreateFromDirectory(Path.Combine(outputPath, "aoarchive"), Path.Combine(outputPath, "aoarchive.zip"), CompressionLevel.Optimal, false);
+                }
+
+                progressBar1.Style = ProgressBarStyle.Continuous;
                 currentTaskLabel.Text = "Nothing";
             }
         }

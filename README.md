@@ -15,7 +15,7 @@ An offline Minecraft launcher that can be burned to a DVD
   - [x] Assets, libraries, and clients
   - [x] Mojang runtimes
   - [ ] Adoptium runtimes
-  - [ ] Compression
+  - [x] Compression
 - Launcher
   - [ ] Create instances
   - [ ] Start instances
