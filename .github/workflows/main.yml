@@ -21,7 +21,7 @@ jobs:
       uses: NuGet/setup-nuget@v1
 
     - name: Restore NuGet Packages
-      run: nuget restore your-solution-name.slnx
+      run: nuget restore Aonaran.slnx
 
     - name: Build Solution
-      run: msbuild your-solution-name.slnx /p:Configuration=Release
+      run: msbuild Aonaran.slnx /p:Configuration=Release
