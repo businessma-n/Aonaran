@@ -47,6 +47,7 @@
             this.selSnapshotsButton = new System.Windows.Forms.Button();
             this.selReleasesButton = new System.Windows.Forms.Button();
             this.Output = new System.Windows.Forms.GroupBox();
+            this.openOutput = new System.Windows.Forms.Button();
             this.overwriteBox = new System.Windows.Forms.CheckBox();
             this.compressBox = new System.Windows.Forms.CheckBox();
             this.panel3 = new System.Windows.Forms.Panel();
@@ -58,7 +59,6 @@
             this.panel4 = new System.Windows.Forms.Panel();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.javaComboBox = new System.Windows.Forms.ComboBox();
-            this.openOutput = new System.Windows.Forms.Button();
             this.tableLayoutPanel1.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
             this.groupBox1.SuspendLayout();
@@ -332,6 +332,17 @@
             this.Output.TabStop = false;
             this.Output.Text = "Output";
             // 
+            // openOutput
+            // 
+            this.openOutput.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.openOutput.Location = new System.Drawing.Point(3, 86);
+            this.openOutput.Name = "openOutput";
+            this.openOutput.Size = new System.Drawing.Size(181, 23);
+            this.openOutput.TabIndex = 2;
+            this.openOutput.Text = "Open Output";
+            this.openOutput.UseVisualStyleBackColor = true;
+            this.openOutput.Click += new System.EventHandler(this.openOutput_Click);
+            // 
             // overwriteBox
             // 
             this.overwriteBox.AutoSize = true;
@@ -350,8 +361,6 @@
             // 
             this.compressBox.AutoSize = true;
             this.compressBox.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.compressBox.Checked = true;
-            this.compressBox.CheckState = System.Windows.Forms.CheckState.Checked;
             this.compressBox.Dock = System.Windows.Forms.DockStyle.Top;
             this.compressBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.compressBox.Location = new System.Drawing.Point(3, 16);
@@ -448,26 +457,13 @@
             this.javaComboBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.javaComboBox.FormattingEnabled = true;
             this.javaComboBox.Items.AddRange(new object[] {
-            "None",
             "Mojang",
-            "Mojang + Adoptium",
-            "Adoptium"});
+            "None"});
             this.javaComboBox.Location = new System.Drawing.Point(10, 23);
             this.javaComboBox.Name = "javaComboBox";
             this.javaComboBox.Size = new System.Drawing.Size(369, 21);
             this.javaComboBox.TabIndex = 0;
-            this.javaComboBox.Text = "None";
-            // 
-            // openOutput
-            // 
-            this.openOutput.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.openOutput.Location = new System.Drawing.Point(3, 86);
-            this.openOutput.Name = "openOutput";
-            this.openOutput.Size = new System.Drawing.Size(181, 23);
-            this.openOutput.TabIndex = 2;
-            this.openOutput.Text = "Open Output";
-            this.openOutput.UseVisualStyleBackColor = true;
-            this.openOutput.Click += new System.EventHandler(this.openOutput_Click);
+            this.javaComboBox.Text = "Mojang";
             // 
             // Form1
             // 
