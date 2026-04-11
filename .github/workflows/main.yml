@@ -9,9 +9,19 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: microsoft/setup-msbuild@v2
-      - uses: NuGet/setup-nuget@v1
-      - run: nuget restore Aonaran.sln
-      - run: msbuild Aonaran.sln /p:Configuration=Release -m
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v1
+
+    - name: Restore NuGet Packages
+      run: nuget restore your-solution-name.sln
+
+    - name: Build Solution
+      run: msbuild your-solution-name.sln /p:Configuration=Release
