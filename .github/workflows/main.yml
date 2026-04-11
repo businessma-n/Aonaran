@@ -1,0 +1,37 @@
+name: Build .NET Framework
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+  
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v1
+
+    - name: Restore NuGet Packages
+      run: nuget restore Aonaran.slnx
+
+    - name: Build Solution
+      run: msbuild Aonaran.slnx /p:Configuration=Release
+      
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Aonaran Release
+        # Use a wildcard to grab everything in the bin/Release folders of all projects
+        path: |
+          **/bin/Release/*.exe
+          **/bin/Release/*.dll
+          **/bin/Release/*.config
