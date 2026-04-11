@@ -603,7 +603,11 @@ namespace Aonaran_Archiver
                 Directory.Delete(Path.Combine(outputPath), true);
             }
 
-            File.Delete(Path.Combine(outputPath, "aoarchive.zip"));
+            if (File.Exists(Path.Combine(outputPath, "aoarchive.zip")))
+            {
+                File.Delete(Path.Combine(outputPath, "aoarchive.zip"));
+            }
+
             Directory.CreateDirectory(Path.Combine(outputPath, "aoarchive", "versiondata"));
 
             JavaRuntimeManager runtimeManager = new JavaRuntimeManager(javaComboBox.Text, Path.Combine(outputPath, "aoarchive", "java"));
