@@ -25,3 +25,13 @@ jobs:
 
     - name: Build Solution
       run: msbuild Aonaran.slnx /p:Configuration=Release
+      
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Aonaran Release
+        # Use a wildcard to grab everything in the bin/Release folders of all projects
+        path: |
+          **/bin/Release/*.exe
+          **/bin/Release/*.dll
+          **/bin/Release/*.config
